@@ -11,62 +11,115 @@ export default function MealsScreen() {
       <View style={styles.container}>
         <Text>Aucun repas enregistré pour le moment.</Text>
       </View>
-    )
+    );
   }
+
+  const groupedMeals = meals.reduce((acc: any, meal) => {
+    const dateKey = new Date(meal.date).toLocaleDateString();
+
+    if (!acc[dateKey]) {
+      acc[dateKey] = [];
+    }
+
+    acc[dateKey].push(meal);
+    return acc;
+  }, {});
+
+  const sortedDates = Object.keys(groupedMeals).sort(
+    (a, b) => new Date(b).getTime() - new Date(a).getTime()
+  );
 
   return (
     <View style={styles.container}>
       <FlatList
-        data={meals}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => {
-          const firstImage = item.foods[0]?.image_url;
+        data={sortedDates}
+        keyExtractor={(item) => item}
+        renderItem={({ item: date }) => {
+          const mealsOfDay = groupedMeals[date];
+
+          const total = mealsOfDay.reduce(
+            (acc: any, meal: any) => {
+              meal.foods.forEach((food: any) => {
+                acc.calories += food.calories || 0;
+                acc.protein += food.protein || 0;
+                acc.carbs += food.carbs || 0;
+                acc.fat += food.fat || 0;
+              });
+              return acc;
+            },
+            { calories: 0, protein: 0, carbs: 0, fat: 0 }
+          );
 
           return (
-            <Pressable
-              style={styles.mealItem}
-              onPress={() =>
-                router.push({
-                  pathname: '/[id]',
-                  params: { id: item.id },
-                })
-              }
-            >
-              <View style={styles.mealInfo}>
-                <Text style={styles.mealType}>
-                  {item.name}
-                </Text>
+            <View style={{ marginBottom: 20 }}>
+              <Text style={styles.dateHeader}>{date}</Text>
 
-                <Text
-                  style={styles.mealFoods}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {item.foods.map((f) => f.name).join(', ')}
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryText}>
+                  🔥 {Math.round(total.calories)} kcal
                 </Text>
-
-                <Text style={styles.mealDate}>
-                  {new Date(item.date).toLocaleDateString()} • {getTotalCalories(item)} kcal
+                <Text style={styles.summaryText}>
+                  💪 {Math.round(total.protein)}g Prot
+                </Text>
+                <Text style={styles.summaryText}>
+                  🍞 {Math.round(total.carbs)}g Gluc
+                </Text>
+                <Text style={styles.summaryText}>
+                  🥑 {Math.round(total.fat)}g Lip
                 </Text>
               </View>
 
-              {firstImage ? (
-                <Image
-                  source={{ uri: firstImage }}
-                  style={styles.mealImage}
-                />
-              ) : (
-                <View style={styles.mealImagePlaceholder} />
-              )}
-            </Pressable>
+              {/* 🍽 Tes cards repas INCHANGÉES */}
+              {mealsOfDay.map((item: any) => {
+                const firstImage = item.foods[0]?.image_url;
+
+                return (
+                  <Pressable
+                    key={item.id}
+                    style={styles.mealItem}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/[id]',
+                        params: { id: item.id },
+                      })
+                    }
+                  >
+                    <View style={styles.mealInfo}>
+                      <Text style={styles.mealType}>
+                        {item.name}
+                      </Text>
+
+                      <Text
+                        style={styles.mealFoods}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
+                        {item.foods.map((f: any) => f.name).join(', ')}
+                      </Text>
+
+                      <Text style={styles.mealDate}>
+                        {new Date(item.date).toLocaleDateString()} • {getTotalCalories(item)} kcal
+                      </Text>
+                    </View>
+
+                    {firstImage ? (
+                      <Image
+                        source={{ uri: firstImage }}
+                        style={styles.mealImage}
+                      />
+                    ) : (
+                      <View style={styles.mealImagePlaceholder} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
           );
         }}
       />
     </View>
-  )
-};
-
-
+  );
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -119,4 +172,26 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#ddd',
   },
+
+  dateHeader: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+
+  summaryCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    elevation: 2,
+  },
+
+  summaryText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
 });
